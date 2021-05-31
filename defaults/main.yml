@@ -3,7 +3,11 @@
 
 caddy_user: caddy
 caddy_group: "{{ caddy_user }}"
-caddy_xcaddy_version: "0.1.9"
+xcaddy_version: "0.1.9"
 
-caddy_repo: https://github.com/caddyserver/caddy
-caddy_branch_tag: v2.4.1
+caddy_build_folder: /srv/caddy/build
+caddy_build_output: "{{ caddy_build_folder }}/caddy"
+
+xcaddy_with:
+  - "github.com/caddy-dns/loopia"
+  - "github.com/caddyserver/caddy/v2=github.com/kmpm/caddy/v2@caddyfile-propagation"

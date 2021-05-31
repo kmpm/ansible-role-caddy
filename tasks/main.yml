@@ -1,20 +1,74 @@
 ---
 # tasks file for caddy
+- name: Print Architecture
+  debug: 
+    msg: 
+      - "Architecture:               {{ ansible_architecture }}"
+      - "Distribution:               {{ ansible_distribution }}"
+      - "Distribution Version:       {{ ansible_distribution_version }}"
+      - "Distribution Major Version: {{ ansible_distribution_major_version }}"
+      - "OS Family:                  {{ ansible_os_family }}"
+
+- name: Gather variables for each architecture
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_architecture | lower }}.yml"
+
+- name: install go if needed
+  include_tasks: install-go.yml
+
 - name: download xcaddy
   unarchive:
-    src: "https://github.com/caddyserver/xcaddy/releases/download/v{{ caddy_xcaddy_version }}/xcaddy_{{ caddy_xcaddy_version }}_linux_{{ caddy_xcaddy_version }}.tar.gz"
+    src: "https://github.com/caddyserver/xcaddy/releases/download/v{{ xcaddy_version }}/xcaddy_{{ xcaddy_version }}_linux_{{ xcaddy_arch }}.tar.gz"
     dest: /usr/local/bin
     remote_src: yes
     extra_opts:
       - xcaddy
     creates: /usr/local/bin/xcaddy
 
-- name: create caddy group
+- name: create build folder
+  file:
+    path: "{{ caddy_build_folder }}"
+    state: directory
+    mode: '0755'
+
+
+- name: "build caddy"
+  shell:
+    cmd: xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ')}}
+
+    chdir: "{{ caddy_build_folder }}"
+    creates: "{{ caddy_build_output }}"
+  register: xcaddy_build
+  environment:
+    - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
+    - GOENV: "{{ caddy_build_folder }}/var/go"
+    - GOCACHE: "{{ caddy_build_folder }}/var/go-build"
+    - MODCACHE: "{{ caddy_build_folder }}/var/pkg/mod"
+  
+
+- debug: var=xcaddy_build.stderr_lines
+  when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
+
+
+- name: stop service
+  systemd:
+    name: caddy
+    state: stopped
+  when: xcaddy_build.changed
+
+- name: replace old binary
+  command: "mv {{ caddy_build_output }} /usr/local/bin/caddy"
+  args:
+    removes: "{{ caddy_build_output }}"
+  when: xcaddy_build.changed
+
+- name: "create group '{{ caddy_group }}' for caddy"
   ansible.builtin.group:
     system: yes
     name: "{{ caddy_group }}"
 
-- name: create caddy user
+- name: "create user '{{ caddy_user }}' for caddy "
   ansible.builtin.user:
     name: "{{ caddy_user }}"
     group: "{{ caddy_group }}"
@@ -22,7 +76,7 @@
     shell: /bin/false
     system: yes
 
-- name: create folders
+- name: create folders for caddy
   file:
     path: "{{ item }}"
     state: directory
@@ -33,25 +87,33 @@
     - /etc/caddy
     - /var/lib/caddy
 
-- name: clone caddy
-  ansible.builtin.git:
-    repo: 'https://github.com/kmpm/caddy-loopia-propagation'
-    dest: "{{ faasd_caddy_propagation }}"
-  register: gitclone
+- name: configure caddy service
+  template:
+    src: caddy.service.j2
+    dest: /etc/systemd/system/caddy.service
+  register: caddy_service
 
-- name: build modified caddy
-  shell:
-    cmd: make
-    chdir: "{{ faasd_caddy_propagation }}"
-    creates: "{{ faasd_caddy_build_output }}"
-  register: xcaddy_build
-  environment:
-    - binfile: "{{ faasd_caddy_build_output }}"
-    - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
-    - GOENV: "{{ faasd_caddy_propagation }}/var/go"
-    - GOCACHE: "{{ faasd_caddy_propagation }}/var/go-build"
-    - MODCACHE: "{{ faasd_caddy_propagation }}/var/pkg/mod"
-  when: gitclone.changed
+- name: configure caddyfile
+  template:
+    src: caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+  register: caddy_config
 
-- debug: var=xcaddy_build.stderr_lines
-  when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
+- name: make sure caddy has access to all it's files
+  file:
+    dest: "{{ item }}"
+    recurse: yes
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_group }}"
+  loop:
+    - /etc/caddy
+    - /var/lib/caddy
+  
+- name: make sure caddy is (re)started and enabled
+  systemd:
+    name: caddy
+    state: restarted
+    daemon_reload: true
+    enabled: yes
+  when: caddy_service.changed or caddy_config.changed
+
