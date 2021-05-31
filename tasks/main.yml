@@ -1,0 +1,57 @@
+---
+# tasks file for caddy
+- name: download xcaddy
+  unarchive:
+    src: "https://github.com/caddyserver/xcaddy/releases/download/v{{ caddy_xcaddy_version }}/xcaddy_{{ caddy_xcaddy_version }}_linux_{{ caddy_xcaddy_version }}.tar.gz"
+    dest: /usr/local/bin
+    remote_src: yes
+    extra_opts:
+      - xcaddy
+    creates: /usr/local/bin/xcaddy
+
+- name: create caddy group
+  ansible.builtin.group:
+    system: yes
+    name: "{{ caddy_group }}"
+
+- name: create caddy user
+  ansible.builtin.user:
+    name: "{{ caddy_user }}"
+    group: "{{ caddy_group }}"
+    home: /var/lib/caddy
+    shell: /bin/false
+    system: yes
+
+- name: create folders
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_group }}"
+  loop:
+    - /etc/caddy
+    - /var/lib/caddy
+
+- name: clone caddy
+  ansible.builtin.git:
+    repo: 'https://github.com/kmpm/caddy-loopia-propagation'
+    dest: "{{ faasd_caddy_propagation }}"
+  register: gitclone
+
+- name: build modified caddy
+  shell:
+    cmd: make
+    chdir: "{{ faasd_caddy_propagation }}"
+    creates: "{{ faasd_caddy_build_output }}"
+  register: xcaddy_build
+  environment:
+    - binfile: "{{ faasd_caddy_build_output }}"
+    - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
+    - GOENV: "{{ faasd_caddy_propagation }}/var/go"
+    - GOCACHE: "{{ faasd_caddy_propagation }}/var/go-build"
+    - MODCACHE: "{{ faasd_caddy_propagation }}/var/pkg/mod"
+  when: gitclone.changed
+
+- debug: var=xcaddy_build.stderr_lines
+  when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
