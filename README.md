@@ -1,7 +1,7 @@
-Role Name
+Caddy
 =========
 
-A brief description of the role goes here.
+A role that, possibly compiles, and installs caddy.
 
 Requirements
 ------------

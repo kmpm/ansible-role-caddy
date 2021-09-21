@@ -14,54 +14,25 @@
   with_first_found:
     - "{{ ansible_architecture | lower }}.yml"
 
-- name: install go if needed
-  include_tasks: install-go.yml
 
-- name: download xcaddy
-  unarchive:
-    src: "https://github.com/caddyserver/xcaddy/releases/download/v{{ xcaddy_version }}/xcaddy_{{ xcaddy_version }}_linux_{{ xcaddy_arch }}.tar.gz"
-    dest: /usr/local/bin
-    remote_src: yes
-    extra_opts:
-      - xcaddy
-    creates: /usr/local/bin/xcaddy
-
-- name: create build folder
-  file:
-    path: "{{ caddy_build_folder }}"
+- name: Create directory for ansible custom facts
+  ansible.builtin.file:
     state: directory
+    path: /etc/ansible/facts.d
     mode: '0755'
 
+- name: default caddy.fact
+  copy:
+    src: caddy.fact
+    dest: /etc/ansible/facts.d/caddy.fact
+    force: no
+    mode: 0644
+  notify:
+    - reload ansible_local
 
-- name: "build caddy"
-  shell:
-    cmd: xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ')}}
-
-    chdir: "{{ caddy_build_folder }}"
-    creates: "{{ caddy_build_output }}"
-  register: xcaddy_build
-  environment:
-    - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
-    - GOENV: "{{ caddy_build_folder }}/var/go"
-    - GOCACHE: "{{ caddy_build_folder }}/var/go-build"
-    - MODCACHE: "{{ caddy_build_folder }}/var/pkg/mod"
-  
-
-- debug: var=xcaddy_build.stderr_lines
-  when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
-
-
-- name: stop service
-  systemd:
-    name: caddy
-    state: stopped
-  when: xcaddy_build.changed
-
-- name: replace old binary
-  command: "mv {{ caddy_build_output }} /usr/local/bin/caddy"
-  args:
-    removes: "{{ caddy_build_output }}"
-  when: xcaddy_build.changed
+- name: "reload ansible_local"
+  setup:
+    filter: "ansible_local"
 
 - name: "create group '{{ caddy_group }}' for caddy"
   ansible.builtin.group:
@@ -76,7 +47,72 @@
     shell: /bin/false
     system: yes
 
-- name: create folders for caddy
+- name: create folders
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ caddy_tools_folder }}"
+    - "{{ caddy_build_folder }}"
+
+
+- name: install go if needed
+  include_tasks: install-go.yml
+
+- name: download xcaddy
+  unarchive:
+    src: "https://github.com/caddyserver/xcaddy/releases/download/v{{ xcaddy_version }}/xcaddy_{{ xcaddy_version }}_linux_{{ xcaddy_arch }}.tar.gz"
+    dest:  "{{ caddy_tools_folder }}"
+    remote_src: yes
+    extra_opts:
+      - xcaddy
+    creates: "{{ caddy_tools_folder }}/xcaddy"
+
+
+# - name: "build caddy"
+#   shell:
+#     cmd: "xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ') }}"
+
+#     chdir: "{{ caddy_build_folder }}"
+#     creates: "{{ caddy_build_output }}"
+#   register: xcaddy_build
+#   environment:
+#     - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
+#     - GOENV: "{{ caddy_build_folder }}/var/go"
+#     - GOCACHE: "{{ caddy_build_folder }}/var/go-build"
+#     - MODCACHE: "{{ caddy_build_folder }}/var/pkg/mod"
+
+- name: build caddy
+  ansible.builtin.command:
+    cmd: "xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ') }}"
+    chdir: "{{ caddy_build_folder }}"
+    creates: "{{ caddy_build_output }}"
+  register: xcaddy_build
+  environment:
+    - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
+    - GOENV: "{{ caddy_build_folder }}/var/go"
+    - GOCACHE: "{{ caddy_build_folder }}/var/go-build"
+    - MODCACHE: "{{ caddy_build_folder }}/var/pkg/mod"
+
+- name: 'debug caddy build'
+  debug: var=xcaddy_build.stderr_lines
+  when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
+
+# - name: stop service
+#   systemd:
+#     name: caddy
+#     state: stopped
+#   when: xcaddy_build.changed
+#   tags: molecule-notest
+
+- name: replace old binary
+  command: "mv {{ caddy_build_output }} {{ caddy_folder }}/caddy"
+  args:
+    removes: "{{ caddy_build_output }}"
+  when: xcaddy_build.changed
+
+- name: create folders for caddy runtime
   file:
     path: "{{ item }}"
     state: directory
@@ -91,12 +127,16 @@
   template:
     src: caddy.service.j2
     dest: /etc/systemd/system/caddy.service
+    mode: '0644'
   register: caddy_service
 
 - name: configure caddyfile
   template:
     src: caddyfile.j2
     dest: /etc/caddy/Caddyfile
+    mode: '0644'
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_group }}"
   register: caddy_config
 
 - name: make sure caddy has access to all it's files
@@ -110,10 +150,7 @@
     - /var/lib/caddy
   
 - name: make sure caddy is (re)started and enabled
-  systemd:
-    name: caddy
-    state: restarted
-    daemon_reload: true
-    enabled: yes
+  debug: msg="enable and restart caddy"
+  notify: restart caddy
   when: caddy_service.changed or caddy_config.changed
-
+  tags: molecule-notest

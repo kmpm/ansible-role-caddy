@@ -1,7 +1,8 @@
 ---
 - name: Converge
   hosts: all
+  become: true
   tasks:
     - name: "Include caddy"
       include_role:
-        name: "caddy"
+        name: "kmpm.caddy"

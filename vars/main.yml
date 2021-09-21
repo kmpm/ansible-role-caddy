@@ -1,2 +1,5 @@
 ---
 # vars file for caddy
+caddy_tools_folder: "{{ caddy_folder }}/tools"
+caddy_build_folder: "{{ caddy_folder }}/build"
+caddy_build_output: "{{ caddy_build_folder }}/caddy"
