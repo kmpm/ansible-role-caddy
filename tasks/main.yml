@@ -85,7 +85,7 @@
 
 - name: build caddy
   ansible.builtin.command:
-    cmd: "xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ') }}"
+    cmd: "{{ caddy_tools_folder }}/xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ') }}"
     chdir: "{{ caddy_build_folder }}"
     creates: "{{ caddy_build_output }}"
   register: xcaddy_build
@@ -95,16 +95,9 @@
     - GOCACHE: "{{ caddy_build_folder }}/var/go-build"
     - MODCACHE: "{{ caddy_build_folder }}/var/pkg/mod"
 
-- name: 'debug caddy build'
-  debug: var=xcaddy_build.stderr_lines
-  when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
-
-# - name: stop service
-#   systemd:
-#     name: caddy
-#     state: stopped
-#   when: xcaddy_build.changed
-#   tags: molecule-notest
+# - name: 'debug caddy build'
+#   debug: var=xcaddy_build.stderr_lines
+#   when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
 
 - name: replace old binary
   command: "mv {{ caddy_build_output }} {{ caddy_folder }}/caddy"
