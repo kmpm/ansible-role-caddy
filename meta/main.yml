@@ -12,7 +12,8 @@ galaxy_info:
   platforms:
     - name: Debian
       versions:
-      - all
+      - bullseye
+      - buster
 
   galaxy_tags:
     - web

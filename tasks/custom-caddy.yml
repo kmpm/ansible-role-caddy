@@ -71,7 +71,7 @@
 
 - name: build caddy if needed
   block:
-    - name: build caddy
+    - name: building custom caddy, will take a while
       ansible.builtin.command:
         cmd: "{{ caddy_tools_folder }}/xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ') }}"
         chdir: "{{ caddy_build_folder }}"

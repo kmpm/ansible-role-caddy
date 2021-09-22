@@ -115,3 +115,10 @@
   notify: restart caddy
   when: caddy_service.changed or caddy_config.changed
   tags: molecule-notest
+
+- name: check started
+  systemd:
+    name: caddy
+    state: started
+    enabled: yes
+    daemon_reload: true
