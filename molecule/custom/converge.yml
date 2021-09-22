@@ -1,0 +1,12 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    xcaddy_with:
+      - "github.com/caddy-dns/loopia"
+    
+  tasks:
+    - name: "Include caddy"
+      include_role:
+        name: "kmpm.caddy"

@@ -1,0 +1,38 @@
+---
+- name: "get caddy Latest Release from Github"
+  community.general.github_release:
+    user: caddyserver
+    repo: caddy
+    action: latest_release
+  register: caddy_release
+  when: caddy_version == 'latest'
+
+- name: Print Latest release
+  ansible.builtin.debug:
+    var: caddy_release
+  when: caddy_version == 'latest'
+
+- name: Pick latest version
+  set_fact:
+    caddy_version: "{{ caddy_release.tag[1:] }}"
+  when: caddy_version == 'latest'
+
+- name: "download caddy {{ caddy_version }}"
+  ansible.builtin.unarchive:
+    # https://github.com/caddyserver/caddy/releases/download/v2.4.5/caddy_2.4.5_linux_amd64.tar.gz
+    src: https://github.com/caddyserver/caddy/releases/download/v{{ caddy_version }}/caddy_{{ caddy_version }}_linux_{{ caddy_arch }}.tar.gz
+    dest: /tmp
+    remote_src: true
+    extra_opts:
+      - caddy
+  when: caddy_version is version(ansible_local['caddy']['current']['version'], '>')
+    
+- name: update current version in custom facts
+  ini_file:
+    path: /etc/ansible/facts.d/caddy.fact
+    section: current
+    option: version
+    value: "{{ caddy_version }}"
+    mode: '0644'
+  notify:
+    - reload ansible_local
