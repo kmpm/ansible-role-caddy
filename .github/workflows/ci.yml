@@ -40,13 +40,13 @@ jobs:
     continue-on-error: ${{ matrix.experimental }}
     strategy:
       matrix:
-        experimental: [false]
         distro:
           - ubuntu2004
           - debian10
         scenario: 
           - default
           - custom
+        experimental: [false]
         include:
           - distro: debian10
             scenario: customversion
@@ -65,13 +65,15 @@ jobs:
 
       - name: Install test dependencies.
         run: |
-          ls -la
           python3 -m pip install --upgrade pip
           python3 -m pip install wheel
           python3 -m pip install -r requirements.txt
       
       - name: Run Molecule tests.
-        run: molecule test
+        run: |
+          echo $MOLECULE_DISTRO
+          echo $MOLECULE_SCENARIO_NAME
+          molecule test -s ${{ matrix.scenario }}
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
