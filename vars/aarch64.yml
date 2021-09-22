@@ -1,0 +1,3 @@
+xcaddy_arch: 'arm64'
+caddy_arch: 'arm64'
+golang_arch: 'arm64'

@@ -62,3 +62,9 @@ License
 
 MIT
 
+
+Inspiration
+-----------
+- https://www.jeffgeerling.com/blog/2018/testing-your-ansible-roles-molecule
+- https://redhatnordicssa.github.io/how-we-test-our-roles
+- https://itheo.tech/install-python-3-8-on-a-raspberry-pi

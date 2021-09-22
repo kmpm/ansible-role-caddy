@@ -122,3 +122,4 @@
     state: started
     enabled: yes
     daemon_reload: true
+  tags: molecule-notest
