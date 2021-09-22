@@ -1,7 +1,11 @@
 kmpm.caddy
 ==========
 
-A role that, by using xcaddy, compiles, installs and configure caddyserver
+A role that, by using xcaddy, compiles, installs and configure [caddy](https://github.com/caddyserver/caddy) server.
+
+If any custom modules are given using the variable `xcaddy_with` then
+caddy will be compiled from source using [xcaddy](https://github.com/caddyserver/xcaddy) on the remote computer.
+
 
 Requirements
 ------------
@@ -13,11 +17,29 @@ pip install github3.py
 Role Variables
 --------------
 
-`xcaddy_with: []` a list of modules that should be included when caddy compiles.
+`caddy_version: latest` lets you choose version of caddy or latest.
+```yaml
+caddy_version: 2.4.5
+```
+
+`caddy_user: caddy` sets the name of the user that will end up running caddy.
+
+`caddy_group: "{{ caddy_user }}"` sets the name of the group used to run caddy.
+
+`xcaddy_with: []` a list of modules that should be included.
+This will trigger a custom compile of caddy using golang and xcaddy.
 ```yaml
 xcaddy_with:
   - "github.com/caddy-dns/loopia"
 ```
+
+### Used when compiling using xcaddy
+The role will install git, if missing and `caddy_version != "latest"`
+`xcaddy_version: latest` the xcaddy release to use if compiling
+
+`golang_version: 0.16.4` the version of golang to install if not found in 
+`/usr/local/go/bin`
+
 
 Dependencies
 ------------
@@ -33,7 +55,7 @@ Including an example of how to use your role (for instance, with variables passe
 
     - hosts: servers
       roles:
-         - { role: username.rolename, x: 42 }
+         - { role: kmpm.caddy, caddy_version: 'latest' }
 
 License
 -------
