@@ -14,7 +14,6 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.experimental }}
     steps:
       - name: Check out the codebase.
         uses: actions/checkout@v2

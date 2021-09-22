@@ -14,7 +14,7 @@
   register: caddy_release
   when: caddy_version == 'latest'
 
-- name: "pick '{{ caddy_release.tag[1:] }}' as latest version of caddy"
+- name: "pick {{ caddy_release.tag[1:] }} as latest version of caddy"
   set_fact:
     caddy_version: "{{ caddy_release.tag[1:] }}"
     caddy_is_latest: true
@@ -44,7 +44,7 @@
   register: xcaddy_update
   when: xcaddy_version is version(ansible_local['caddy']['current']['xcaddy_version'], '>')
 
-- name: update xcaddy to {{ xcaddy_version }} in custom facts
+- name: "update xcaddy to {{ xcaddy_version }} in custom facts"
   ini_file:
     path: /etc/ansible/facts.d/caddy.fact
     section: current
@@ -54,7 +54,7 @@
   notify:
     - reload ansible_local
 
-- name: Make sure required packages are installed
+- name: make sure required packages are installed
   package:
     name: "{{ item }}"
     state: present
