@@ -4,10 +4,12 @@
 caddy_user: caddy
 caddy_group: "{{ caddy_user }}"
 golang_version: "1.16.4"
-xcaddy_version: "0.1.9"
+xcaddy_version: "latest"
+caddy_version: "latest"
 
 caddy_folder: /opt/caddy
 
+# xcaddy_with: []
 
 xcaddy_with:
   - "github.com/caddy-dns/loopia"

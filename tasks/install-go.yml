@@ -1,7 +1,0 @@
----
-- name: "install golang for {{ golang_arch }}"
-  unarchive:
-    src: "https://golang.org/dl/go{{ golang_version }}.linux-{{ golang_arch }}.tar.gz"
-    dest: /usr/local
-    remote_src: yes
-    creates: /usr/local/go

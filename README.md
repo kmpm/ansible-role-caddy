@@ -6,8 +6,9 @@ A role that, by using xcaddy, compiles, installs and configure caddyserver
 Requirements
 ------------
 
-No special requirements.
-
+```shell
+pip install github3.py
+```
 
 Role Variables
 --------------
@@ -21,7 +22,8 @@ xcaddy_with:
 Dependencies
 ------------
 
-No collections or roles are required besides default ansible ones.
+### Collections
+- community.general
 
 
 Example Playbook

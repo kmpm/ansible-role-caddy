@@ -34,6 +34,13 @@
   setup:
     filter: "ansible_local"
 
+- name: show versions
+  debug:
+    msg:
+    - "caddy got {{ ansible_local['caddy']['current']['version'] }}, wants {{ caddy_version }} "
+    - "xcaddy got {{ ansible_local['caddy']['current']['xcaddy_version'] }}, wants {{ xcaddy_version }} "
+    - "change /etc/ansible/facts.d/caddy.fact if current versions isn't correct"
+
 - name: "create group '{{ caddy_group }}' for caddy"
   ansible.builtin.group:
     system: yes
@@ -57,53 +64,50 @@
     - "{{ caddy_build_folder }}"
 
 
-- name: install go if needed
-  include_tasks: install-go.yml
+- name: custom caddy
+  include_tasks: custom-caddy.yml
+  when: xcaddy_with is defined and (xcaddy_with|length>0)
 
-- name: download xcaddy
-  unarchive:
-    src: "https://github.com/caddyserver/xcaddy/releases/download/v{{ xcaddy_version }}/xcaddy_{{ xcaddy_version }}_linux_{{ xcaddy_arch }}.tar.gz"
-    dest:  "{{ caddy_tools_folder }}"
-    remote_src: yes
-    extra_opts:
-      - xcaddy
-    creates: "{{ caddy_tools_folder }}/xcaddy"
+- name: default caddy
+  block:
+    - name: "get xcaddy Latest Release from Github"
+      community.general.github_release:
+        user: caddyserver
+        repo: caddy
+        action: latest_release
+      register: caddy_release
+      when: caddy_version == 'latest'
 
+    - name: Print Latest release
+      ansible.builtin.debug:
+        var: caddy_release
+      when: caddy_version == 'latest'
 
-# - name: "build caddy"
-#   shell:
-#     cmd: "xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ') }}"
+    - name: Pick latest version
+      set_fact:
+        caddy_version: "{{ caddy_release.tag[1:] }}"
+      when: caddy_version == 'latest'
 
-#     chdir: "{{ caddy_build_folder }}"
-#     creates: "{{ caddy_build_output }}"
-#   register: xcaddy_build
-#   environment:
-#     - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
-#     - GOENV: "{{ caddy_build_folder }}/var/go"
-#     - GOCACHE: "{{ caddy_build_folder }}/var/go-build"
-#     - MODCACHE: "{{ caddy_build_folder }}/var/pkg/mod"
+    - name: "download caddy {{ caddy_version }}"
+      ansible.builtin.unarchive:
+        # https://github.com/caddyserver/caddy/releases/download/v2.4.5/caddy_2.4.5_linux_amd64.tar.gz
+        src: https://github.com/caddyserver/caddy/releases/download/v{{ caddy_version }}/caddy_{{ caddy_version }}_linux_{{ caddy_arch }}.tar.gz
+        dest: /tmp
+        remote_src: true
+        extra_opts:
+          - caddy
+      when: caddy_version is version(ansible_local['caddy']['current']['version'], '>')
+        
+    - name: update current version in custom facts
+      ini_file:
+        path: /etc/ansible/facts.d/caddy.fact
+        section: current
+        option: version
+        value: "{{ caddy_version }}"
+      notify:
+        - reload ansible_local
 
-- name: build caddy
-  ansible.builtin.command:
-    cmd: "{{ caddy_tools_folder }}/xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ') }}"
-    chdir: "{{ caddy_build_folder }}"
-    creates: "{{ caddy_build_output }}"
-  register: xcaddy_build
-  environment:
-    - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
-    - GOENV: "{{ caddy_build_folder }}/var/go"
-    - GOCACHE: "{{ caddy_build_folder }}/var/go-build"
-    - MODCACHE: "{{ caddy_build_folder }}/var/pkg/mod"
-
-# - name: 'debug caddy build'
-#   debug: var=xcaddy_build.stderr_lines
-#   when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
-
-- name: replace old binary
-  command: "mv {{ caddy_build_output }} {{ caddy_folder }}/caddy"
-  args:
-    removes: "{{ caddy_build_output }}"
-  when: xcaddy_build.changed
+  when: xcaddy_with is not defined or (xcaddy_with|length==0)
 
 - name: create folders for caddy runtime
   file:

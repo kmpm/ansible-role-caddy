@@ -1,0 +1,75 @@
+
+- name: "install golang for {{ golang_arch }}"
+  unarchive:
+    src: "https://golang.org/dl/go{{ golang_version }}.linux-{{ golang_arch }}.tar.gz"
+    dest: /usr/local
+    remote_src: yes
+    creates: /usr/local/go
+
+
+- name: "get xcaddy Latest Release from Github"
+  community.general.github_release:
+    user: caddyserver
+    repo: xcaddy
+    action: latest_release
+  register: xcaddy_release
+  when: xcaddy_version == 'latest'
+
+- name: "Pick {{ xcaddy_release.tag[1:] }} as latest version of xcaddy"
+  set_fact:
+    xcaddy_version: "{{ xcaddy_release.tag[1:] }}"
+  when: xcaddy_version == 'latest'
+
+- name: "download xcaddy {{ xcaddy_version }}"
+  unarchive:
+    src: "https://github.com/caddyserver/xcaddy/releases/download/v{{ xcaddy_version }}/xcaddy_{{ xcaddy_version }}_linux_{{ xcaddy_arch }}.tar.gz"
+    dest:  "{{ caddy_tools_folder }}"
+    remote_src: yes
+    extra_opts:
+      - xcaddy
+    creates: "{{ caddy_tools_folder }}/xcaddy"
+  when: xcaddy_version is version(ansible_local['caddy']['current']['xcaddy_version'], '>')
+
+
+- name: update xcaddy to {{ xcaddy_version }} in custom facts
+  ini_file:
+    path: /etc/ansible/facts.d/caddy.fact
+    section: current
+    option: xcaddy_version
+    value: "{{ xcaddy_version }}"
+  notify:
+    - reload ansible_local
+
+
+- name: build caddy
+  ansible.builtin.command:
+    cmd: "{{ caddy_tools_folder }}/xcaddy build --output {{ caddy_build_output }} {{ ['--with'] | product(xcaddy_with) | map('join', ' ') | join(' ') }}"
+    chdir: "{{ caddy_build_folder }}"
+    creates: "{{ caddy_build_output }}"
+  register: xcaddy_build
+  environment:
+    - PATH: "/bin:/usr/bin:/usr/local/bin:/usr/local/go/bin"
+    - GOENV: "{{ caddy_build_folder }}/var/go"
+    - GOCACHE: "{{ caddy_build_folder }}/var/go-build"
+    - MODCACHE: "{{ caddy_build_folder }}/var/pkg/mod"
+  tags: molecule-idempotence-notest
+
+- name: 'debug caddy build'
+  debug: var=xcaddy_build.stderr_lines
+  when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
+
+- name: caddy cmd version
+  command:
+    cmd: "{{ caddy_build_output }} version"
+  register: caddy_cmd_version
+  tags: molecule-idempotence-notest
+
+- name: 'debug caddy cmd version'
+  debug: var=caddy_cmd_version.stdout_lines
+  # when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
+
+- name: replace old binary
+  command: "mv {{ caddy_build_output }} {{ caddy_folder }}/caddy"
+  args:
+    removes: "{{ caddy_build_output }}"
+  when: xcaddy_build.changed
