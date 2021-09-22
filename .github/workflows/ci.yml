@@ -42,6 +42,10 @@ jobs:
         distro:
           - ubuntu2004
           - debian10
+        scenario: 
+          - default
+          - custom
+          - custom2
 
     steps:
       - name: Check out the codebase.
@@ -62,9 +66,10 @@ jobs:
           python3 -m pip install -r requirements.txt
       
       - name: Run Molecule tests.
-        run: molecule test --all
+        run: molecule test
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
           MOLECULE_DISTRO: ${{ matrix.distro }}
+          MOLECULE_SCENARIO_NAME: ${{ matrix.scenario }}
         
