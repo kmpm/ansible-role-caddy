@@ -1,8 +1,8 @@
 ---
 # tasks file for caddy
 - name: Print Architecture
-  debug: 
-    msg: 
+  debug:
+    msg:
       - "Architecture:               {{ ansible_architecture }}"
       - "Distribution:               {{ ansible_distribution }}"
       - "Distribution Version:       {{ ansible_distribution_version }}"
@@ -84,21 +84,31 @@
     - /etc/caddy
     - /var/lib/caddy
 
+- name: touch caddy env file
+  file:
+    path: /etc/caddy/env
+    state: touch
+    mode: '0640'
+    owner: "{{ caddy_user }}"
+    group: "{{ caddy_group }}"
+
 - name: configure caddy service
   template:
     src: caddy.service.j2
     dest: /etc/systemd/system/caddy.service
     mode: '0644'
   register: caddy_service
+  notify: restart caddy
 
 - name: configure caddyfile
   template:
-    src: caddyfile.j2
+    src: "{{ caddy_caddyfile_template | default('caddyfile.j2') }}"
     dest: /etc/caddy/Caddyfile
     mode: '0644'
     owner: "{{ caddy_user }}"
     group: "{{ caddy_group }}"
   register: caddy_config
+  notify: restart caddy
 
 - name: make sure caddy has access to all it's files
   file:
@@ -109,12 +119,12 @@
   loop:
     - /etc/caddy
     - /var/lib/caddy
-  
-- name: make sure caddy is (re)started and enabled
-  debug: msg="enable and restart caddy"
-  notify: restart caddy
-  when: caddy_service.changed or caddy_config.changed
-  tags: molecule-notest
+
+# - name: make sure caddy is (re)started and enabled
+#   debug: msg="enable and restart caddy"
+#   notify: restart caddy
+#   when: caddy_service.changed or caddy_config.changed
+#   tags: molecule-notest
 
 - name: check started
   systemd:
