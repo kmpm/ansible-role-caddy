@@ -1,7 +1,7 @@
 kmpm.caddy
 ==========
 
-A role that, by using xcaddy, compiles, installs and configure [caddy](https://github.com/caddyserver/caddy) server.
+A role that installs and configure [caddy](https://github.com/caddyserver/caddy) server.
 
 If any custom modules are given using the variable `xcaddy_with` then
 caddy will be compiled from source using [xcaddy](https://github.com/caddyserver/xcaddy) on the remote computer.
@@ -37,7 +37,7 @@ xcaddy_with:
 The role will install git, if missing and `caddy_version != "latest"`
 `xcaddy_version: latest` the xcaddy release to use if compiling
 
-`golang_version: 0.16.4` the version of golang to install if not found in 
+`golang_version: 0.17.9` the version of golang to install if not found in 
 `/usr/local/go/bin`
 
 
