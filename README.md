@@ -26,6 +26,8 @@ caddy_version: 2.4.5
 
 `caddy_group: "{{ caddy_user }}"` sets the name of the group used to run caddy.
 
+`caddy_caddyfile_template: mycaddyfile.j2` overrides the caddyfile template.
+
 `xcaddy_with: []` a list of modules that should be included.
 This will trigger a custom compile of caddy using golang and xcaddy.
 ```yaml

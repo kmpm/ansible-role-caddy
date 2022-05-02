@@ -9,6 +9,7 @@ caddy_version: "latest"
 
 caddy_folder: /opt/caddy
 
+
 xcaddy_with: []
 
 # xcaddy_with:
