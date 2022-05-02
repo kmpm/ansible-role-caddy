@@ -13,7 +13,7 @@
   when: caddy_version == 'latest'
 
 - name: Pick latest version
-  set_fact:
+  ansible.builtin.set_fact:
     caddy_version: "{{ caddy_release.tag[1:] }}"
   when: caddy_version == 'latest'
 

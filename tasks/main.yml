@@ -1,7 +1,7 @@
 ---
 # tasks file for caddy
 - name: Print Architecture
-  debug:
+  ansible.builtin.debug:
     msg:
       - "Architecture:               {{ ansible_architecture }}"
       - "Distribution:               {{ ansible_distribution }}"
@@ -10,7 +10,7 @@
       - "OS Family:                  {{ ansible_os_family }}"
 
 - name: Gather variables for each architecture
-  include_vars: "{{ item }}"
+  ansible.builtin.include_vars: "{{ item }}"
   with_first_found:
     - "{{ ansible_architecture | lower }}.yml"
 
@@ -22,7 +22,7 @@
     mode: '0755'
 
 - name: default caddy.fact
-  copy:
+  ansible.builtin.copy:
     src: caddy.fact
     dest: /etc/ansible/facts.d/caddy.fact
     force: no
@@ -31,11 +31,11 @@
     - reload ansible_local
 
 - name: "reload ansible_local"
-  setup:
+  ansible.builtin.setup:
     filter: "ansible_local"
 
 - name: show versions
-  debug:
+  ansible.builtin.debug:
     msg:
     - "caddy got {{ ansible_local['caddy']['current']['version'] }}, wants {{ caddy_version }} "
     - "xcaddy got {{ ansible_local['caddy']['current']['xcaddy_version'] }}, wants {{ xcaddy_version }} "
@@ -56,7 +56,7 @@
     system: yes
 
 - name: create folders
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: '0755'
@@ -74,7 +74,7 @@
   when: xcaddy_with is not defined or (xcaddy_with|length==0)
 
 - name: create folders for caddy runtime
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: '0755'
@@ -85,15 +85,16 @@
     - /var/lib/caddy
 
 - name: touch caddy env file
-  file:
+  ansible.builtin.file:
     path: /etc/caddy/env
     state: touch
     mode: '0640'
     owner: "{{ caddy_user }}"
     group: "{{ caddy_group }}"
+  tags: molecule-notest
 
 - name: configure caddy service
-  template:
+  ansible.builtin.template:
     src: caddy.service.j2
     dest: /etc/systemd/system/caddy.service
     mode: '0644'
@@ -101,7 +102,7 @@
   notify: restart caddy
 
 - name: configure caddyfile
-  template:
+  ansible.builtin.template:
     src: "{{ caddy_caddyfile_template | default('caddyfile.j2') }}"
     dest: /etc/caddy/Caddyfile
     mode: '0644'
@@ -111,7 +112,7 @@
   notify: restart caddy
 
 - name: make sure caddy has access to all it's files
-  file:
+  ansible.builtin.file:
     dest: "{{ item }}"
     recurse: yes
     owner: "{{ caddy_user }}"
@@ -127,7 +128,7 @@
 #   tags: molecule-notest
 
 - name: check started
-  systemd:
+  ansible.builtin.systemd:
     name: caddy
     state: started
     enabled: yes

@@ -1,6 +1,6 @@
 ---
 - name: "install golang for {{ golang_arch }}"
-  unarchive:
+  ansible.builtin.unarchive:
     src: "https://golang.org/dl/go{{ golang_version }}.linux-{{ golang_arch }}.tar.gz"
     dest: /usr/local
     remote_src: yes
@@ -15,7 +15,7 @@
   when: caddy_version == 'latest'
 
 - name: "pick {{ caddy_release.tag[1:] }} as latest version of caddy"
-  set_fact:
+  ansible.builtin.set_fact:
     caddy_version: "{{ caddy_release.tag[1:] }}"
     caddy_is_latest: true
   when: caddy_version == 'latest'
@@ -29,12 +29,12 @@
   when: xcaddy_version == 'latest'
 
 - name: "pick {{ xcaddy_release.tag[1:] }} as latest version of xcaddy"
-  set_fact:
+  ansible.builtin.set_fact:
     xcaddy_version: "{{ xcaddy_release.tag[1:] }}"
   when: xcaddy_version == 'latest'
 
 - name: "download xcaddy {{ xcaddy_version }}"
-  unarchive:
+  ansible.builtin.unarchive:
     src: "https://github.com/caddyserver/xcaddy/releases/download/v{{ xcaddy_version }}/xcaddy_{{ xcaddy_version }}_linux_{{ xcaddy_arch }}.tar.gz"
     dest:  "{{ caddy_tools_folder }}"
     remote_src: yes
@@ -45,7 +45,7 @@
   when: xcaddy_version is version(ansible_local['caddy']['current']['xcaddy_version'], '>')
 
 - name: "update xcaddy to {{ xcaddy_version }} in custom facts"
-  ini_file:
+  ansible.builtin.ini_file:
     path: /etc/ansible/facts.d/caddy.fact
     section: current
     option: xcaddy_version
@@ -55,7 +55,7 @@
     - reload ansible_local
 
 - name: make sure required packages are installed
-  package:
+  ansible.builtin.package:
     name: "{{ item }}"
     state: present
   with_items:
@@ -63,7 +63,7 @@
   when: caddy_is_latest is undefined
 
 - name: will be building caddy if...
-  debug:
+  ansible.builtin.debug:
     msg:
     - "caddy '{{ caddy_version }}' > '{{ ansible_local['caddy']['current']['version'] }}'"
     - "xcaddy '{{ xcaddy_version }}' > '{{ ansible_local['caddy']['current']['xcaddy_version'] }}'"
@@ -89,12 +89,12 @@
     #   when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
 
     - name: caddy cmd version
-      command:
+      ansible.builtin.command:
         cmd: "{{ caddy_build_output }} version"
       register: caddy_cmd_version
 
     - name: "pick caddy version {{ caddy_cmd_version.stdout[1:caddy_cmd_version.stdout.index(' ')] }} from {{ caddy_cmd_version.stdout }}"
-      set_fact:
+      ansible.builtin.set_fact:
         caddy_version: "{{ caddy_cmd_version.stdout[1:caddy_cmd_version.stdout.index(' ')] }}"
 
     # - name: 'debug caddy cmd version'
@@ -102,7 +102,7 @@
     #   # when: xcaddy_build is defined and xcaddy_build.stderr_lines is defined
 
     - name: update xcaddy_with to {{ xcaddy_with }} in custom facts
-      ini_file:
+      ansible.builtin.ini_file:
         path: /etc/ansible/facts.d/caddy.fact
         section: current
         option: xcaddy_with
@@ -112,7 +112,7 @@
         - reload ansible_local
         
     - name: update caddy version to {{ caddy_version }} in custom facts
-      ini_file:
+      ansible.builtin.ini_file:
         path: /etc/ansible/facts.d/caddy.fact
         section: current
         option: version
@@ -122,7 +122,7 @@
         - reload ansible_local
 
     - name: install new binary
-      command: "mv {{ caddy_build_output }} {{ caddy_folder }}/caddy"
+      ansible.builtin.command: "mv {{ caddy_build_output }} {{ caddy_folder }}/caddy"
       args:
         removes: "{{ caddy_build_output }}"
       when: xcaddy_build.changed
