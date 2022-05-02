@@ -3,3 +3,6 @@ skip_list:
   - 'role-name'
   - 'no-handler'
 
+warn_list:
+  - fqcn-builtins
+  - no-changed-when
