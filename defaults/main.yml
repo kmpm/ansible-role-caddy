@@ -3,7 +3,7 @@
 
 caddy_user: caddy
 caddy_group: "{{ caddy_user }}"
-golang_version: "1.16.4"
+golang_version: "1.17.9"
 xcaddy_version: "latest"
 caddy_version: "latest"
 
