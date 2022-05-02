@@ -10,6 +10,7 @@ platforms:
 provisioner:
   name: ansible
   playbooks:
+    prepare: ../shared/playbooks/prepare.yml
     converge: ${MOLECULE_PLAYBOOK:-converge.yml}
 verifier:
   name: ansible

@@ -1,0 +1,43 @@
+---
+- name: Example assertion
+  ansible.builtin.assert:
+    that: true
+
+- name: running caddy fmt
+  ansible.builtin.command: "/opt/caddy/caddy fmt /etc/caddy/Caddyfile"
+  register: caddy_fmt
+
+- name: caddy fmt should work
+  ansible.builtin.assert:
+    that: caddy_fmt['rc'] == 0
+
+
+- name: Get stats about caddy.service
+  ansible.builtin.stat:
+    path: /etc/systemd/system/caddy.service
+  register: service
+
+# - debug:
+#     msg: "The contents of service: {{ service }}"
+
+
+
+- name: service should exist - shared
+  ansible.builtin.assert:
+    that: service['stat']['exists']
+
+- name: list some files
+  ansible.builtin.find:
+    paths: /opt/caddy/
+    file_type: any
+    recurse: yes
+  register: files
+
+- name: somethings
+  ansible.builtin.debug:
+    var: files
+    # verbosity: 4
+
+
+
+    

@@ -2,12 +2,14 @@
 # handlers file for caddy
 
 - name: "restart caddy"
-  systemd:
+  ansible.builtin.systemd:
     name: caddy
     state: restarted
     daemon_reload: true
     enabled: yes
+  when:
+    - not skip_systemd
 
 - name: "reload ansible_local"
-  setup:
+  ansible.builtin.setup:
     filter: "ansible_local"

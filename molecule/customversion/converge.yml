@@ -6,8 +6,8 @@
     xcaddy_with:
       - "github.com/caddy-dns/loopia"
     caddy_version: 2.4.6
-    
+    skip_systemd: true
   tasks:
     - name: "Include caddy"
-      include_role:
+      ansible.builtin.include_role:
         name: "kmpm.caddy"
