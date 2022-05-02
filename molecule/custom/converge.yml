@@ -5,6 +5,7 @@
   vars:
     xcaddy_with:
       - "github.com/caddy-dns/loopia"
+      - "github.com/caddy-dns/glesys"
     
   tasks:
     - name: "Include caddy"

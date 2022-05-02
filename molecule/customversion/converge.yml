@@ -5,7 +5,7 @@
   vars:
     xcaddy_with:
       - "github.com/caddy-dns/loopia"
-    caddy_version: 2.4.4
+    caddy_version: 2.4.6
     
   tasks:
     - name: "Include caddy"
