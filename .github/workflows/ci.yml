@@ -42,12 +42,13 @@ jobs:
         distro:
           - ubuntu2004
           - debian10
+          - debian11
         scenario: 
           - default
           - custom
         experimental: [false]
         include:
-          - distro: debian10
+          - distro: debian11
             scenario: customversion
             experimental: true
 

@@ -4,7 +4,7 @@ dependency:
 driver:
   name: docker
 platforms:
-  - name: ${MOLECULE_DISTRO:-debian10}
+  - name: custom-${MOLECULE_DISTRO:-debian10}
     image: geerlingguy/docker-${MOLECULE_DISTRO:-debian10}-ansible:latest
     pre_build_image: true
 provisioner:
@@ -14,4 +14,3 @@ provisioner:
     converge: ${MOLECULE_PLAYBOOK:-converge.yml}
 verifier:
   name: ansible
-  directory: ../shared/tests/
